@@ -247,7 +247,7 @@ class Slacky:
         if tag_version.count('.') >= 2:
             return
         # Skip AppCollection
-        if 'dp.apps.rancher.io' in repository:
+        if repository.startswith('dp.apps.rancher.io'):
             return
 
         repo_tag: str = f'{repository.partition("/")[2]}:{tag_version}'
