@@ -36,7 +36,9 @@ import pika
 import requests
 from pika.adapters.blocking_connection import BlockingChannel
 
-CONF = configparser.ConfigParser(strict=False)
+CONF = configparser.ConfigParser(
+    defaults={'listen_url': 'amqps://suse:suse@rabbit.suse.de:5671/'}, strict=False
+)
 OPENQA_GROUPS_FILTER: tuple[int, ...] = (
     645,
     623,
@@ -125,6 +127,10 @@ class Slacky:
     container_publishes: dict = {}
     last_interval_check: datetime = datetime.now()
     do_save_state: bool = False
+    state_file = (
+        Path(os.environ.get('STATE_PATH', Path(__file__).resolve().parent))
+        / 'state.pickle'
+    )
 
     def handle_openqa_event(self, routing_key: str, msg) -> None:
         """Find failed jobs without pending jobs and then post a message to slack."""
@@ -399,9 +405,8 @@ class Slacky:
 
     def load_state(self) -> None:
         """Restore persisted from a previously launched slacky"""
-        state_file = Path(__file__).resolve().parent / 'state.pickle'
-        if state_file.is_file():
-            with open(Path(__file__).resolve().parent / 'state.pickle', 'rb') as f:
+        if self.state_file.is_file():
+            with open(self.state_file, 'rb') as f:
                 data = pickle.load(f)
                 # copy over the state from a previous launched slacky
                 self.openqa_jobs = data.openqa_jobs
@@ -417,9 +422,9 @@ class Slacky:
 
     def save_state(self) -> None:
         """pickle the slacky state for future instance preservation"""
-        with open(Path(__file__).resolve().parent / 'state.pickle', 'wb') as f:
+        with open(self.state_file, 'wb') as f:
             pickle.dump(self, f)
-            LOG.info('Saved state to state.pickle')
+            LOG.info(f'Saved state to {self.state_file}')
 
     def run(self) -> None:
         """pubsub subscribe to events posted on the AMPQ channel."""
@@ -486,8 +491,12 @@ def main() -> None:
     )
     LOG.getLogger('pika').setLevel(LOG.ERROR)
 
-    with open(os.path.expanduser('~/.config/slacky'), encoding='utf8') as f:
-        CONF.read_file(f)
+    slacky_config = Path(
+        os.environ.get('SLACKY_CONFIG', os.path.expanduser('~/.config/slacky'))
+    )
+    if slacky_config.is_file():
+        with open(slacky_config, encoding='utf8') as f:
+            CONF.read_file(f)
 
     def handle_sigterm(sig, frame):
         raise KeyboardInterrupt
