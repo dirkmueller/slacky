@@ -14,8 +14,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
 
       - run: pip install pytest
+
+      - run: pip install --editable .
 
       - name: Run tests
         run: pytest
