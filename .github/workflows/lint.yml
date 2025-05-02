@@ -1,0 +1,24 @@
+---
+name: Validate formatting
+
+on:
+  push:
+    branches:
+      - "main"
+  pull_request:
+
+jobs:
+  format:
+    name: Ensure code is properly formatted
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: pip install ruff
+
+      - name: Run ruff format
+        run: ruff format --check --diff
+
+      - name: run ruff linter
+        run: ruff check

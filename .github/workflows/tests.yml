@@ -1,0 +1,21 @@
+---
+name: Run unittests
+
+on:
+  push:
+    branches:
+      - "main"
+  pull_request:
+
+jobs:
+  format:
+    name: Ensure tests are passing
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: pip install pytest
+
+      - name: Run tests
+        run: pytest
