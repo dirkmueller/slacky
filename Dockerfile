@@ -11,6 +11,8 @@ COPY slacky slacky
 ENV SLACKY_CONFIG="/app/config/slacky"
 ENV STATE_PATH="/app/slacky/state"
 
+LABEL org.opencontainers.image.source=https://github.com/dirkmueller/slacky
+
 RUN useradd -U --uid 1000 --shell /bin/bash -d /app app && \
     chown -R app: /app
 USER app
