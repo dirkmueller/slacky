@@ -128,7 +128,7 @@ class Slacky:
     last_interval_check: datetime = datetime.now()
     do_save_state: bool = False
     state_file = (
-        Path(os.environ.get('STATE_PATH', Path(__file__).resolve().parent))
+        Path(os.environ.get('STATE_PATH', Path(__file__).resolve().parent) / 'state')
         / 'state.pickle'
     )
 
