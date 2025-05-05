@@ -12,19 +12,17 @@ target is not in scope.
     ```
 2.  Configure the bot by creating a ~/.config/slacky file
     ```
-[DEFAULT]
-slack_trigger_url = ...
+    [DEFAULT]
+    slack_trigger_url = ...
 
-[openqa]
-host = https://openqa.opensuse.org
+    [openqa]
+    host = https://openqa.opensuse.org
 
-[obs]
-host = https://build.opensuse.org
-project_re = $projectstomonitor
-repo_re = $projectstomonitorforpublish
-
-    ```
-1.  Run the bot
+    [obs]
+    host = https://build.opensuse.org
+    project_re = $projectstomonitor
+    repo_re = $projectstomonitorforpublish```
+3.  Run the bot
     ```bash
     python3 slacky.py
     ```
