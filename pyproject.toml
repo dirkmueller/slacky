@@ -15,4 +15,4 @@ build-backend = "setuptools.build_meta"
 
 
 [project.scripts]
-slacky = "slacky.main:main"
+slacky = "slacky:main"
