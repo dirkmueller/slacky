@@ -11,6 +11,7 @@ jobs:
     permissions:
       packages: write
       attestations: write
+      deployments: write
 
     steps:
       - name: Checkout code
