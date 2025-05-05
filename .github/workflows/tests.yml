@@ -1,5 +1,7 @@
 ---
 name: Run unittests
+permissions:
+  contents: read
 
 on:
   push:
