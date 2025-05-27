@@ -23,16 +23,22 @@ from unittest.mock import patch
 
 import slacky
 
-testing_CONF = {}
-testing_CONF['DEFAULT'] = {}
-testing_CONF['obs'] = {'host': 'https://localhost/'}
-testing_CONF['openqa'] = {'host': 'https://localhost/'}
+
+def _create_bot() -> slacky.Slacky:
+    bot = slacky.Slacky()
+    bot.repo_re = re.compile(r'^SUSE:Containers:SLE-SERVER:')
+    bot.project_re = re.compile(r'^SUSE:SLE-15-SP.:Update:(BCI|CR)')
+    slacky.CONF = {
+        'DEFAULT': {},
+        'obs': {'host': 'https://localhost/'},
+        'openqa': {'host': 'https://localhost/'},
+    }
+    return bot
 
 
 @patch('slacky.post_failure_notification_to_slack', return_value=None)
 def test_pending_bs_requests_grouping(mock_post_failure_notification):
-    bot = slacky.Slacky()
-    slacky.CONF = testing_CONF
+    bot = _create_bot()
 
     bot.bs_requests = {
         1: slacky.bs_Request(
@@ -62,8 +68,7 @@ def test_pending_bs_requests_grouping(mock_post_failure_notification):
 
 @patch('slacky.post_failure_notification_to_slack', return_value=None)
 def test_pending_bs_requests_single(mock_post_failure_notification):
-    bot = slacky.Slacky()
-    slacky.CONF = testing_CONF
+    bot = _create_bot()
 
     bot.bs_requests = {
         1: slacky.bs_Request(
@@ -103,8 +108,7 @@ def test_pending_bs_requests_single(mock_post_failure_notification):
 
 @patch('slacky.post_failure_notification_to_slack', return_value=None)
 def test_pending_bs_requests_multiple(mock_post_failure_notification):
-    bot = slacky.Slacky()
-    slacky.CONF = testing_CONF
+    bot = _create_bot()
 
     bot.bs_requests = {
         1: slacky.bs_Request(
@@ -150,8 +154,7 @@ def test_pending_bs_requests_multiple(mock_post_failure_notification):
 
 @patch('slacky.post_failure_notification_to_slack', return_value=None)
 def test_declined_bs_requests_single(mock_post_failure_notification):
-    bot = slacky.Slacky()
-    slacky.CONF = testing_CONF
+    bot = _create_bot()
 
     body = '{"number": 1, "state": "new", "actions": [{"type": "submit", "targetproject": "SUSE:SLE-15-SP6:Update:BCI", "targetpackage": "test"}]}'
     bot.handle_obs_request_event('suse.obs.request.create', json.loads(body))
@@ -171,10 +174,7 @@ def test_declined_bs_requests_single(mock_post_failure_notification):
 
 @patch('slacky.post_failure_notification_to_slack', return_value=None)
 def test_obs_repo_publish(mock_post_failure_notification):
-    bot = slacky.Slacky()
-    bot.repo_re = re.compile(r'^SUSE:Containers:SLE-SERVER:')
-
-    slacky.CONF = testing_CONF
+    bot = _create_bot()
 
     with patch('slacky.datetime') as mock_datetime:
         mock_datetime.now.return_value = datetime.datetime(2023, 1, 2)
@@ -197,10 +197,7 @@ def test_obs_repo_publish(mock_post_failure_notification):
 
 @patch('slacky.post_failure_notification_to_slack', return_value=None)
 def test_obs_container_publish(mock_post_failure_notification):
-    bot = slacky.Slacky()
-    bot.repo_re = re.compile(r'^SUSE:Containers:SLE-SERVER:')
-
-    slacky.CONF = testing_CONF
+    bot = _create_bot()
 
     with patch('slacky.datetime') as mock_datetime:
         mock_datetime.now.return_value = datetime.datetime(2023, 1, 2)
@@ -246,9 +243,7 @@ def test_obs_container_publish(mock_post_failure_notification):
 
 @patch('slacky.post_failure_notification_to_slack', return_value=None)
 def test_openqa_failure(mock_post_failure_notification):
-    bot = slacky.Slacky()
-
-    slacky.CONF = testing_CONF
+    bot = _create_bot()
 
     with patch('slacky.datetime') as mock_datetime:
         mock_datetime.now.return_value = datetime.datetime(2023, 1, 2)
