@@ -41,6 +41,7 @@ CONF = configparser.ConfigParser(
 )
 OPENQA_GROUPS_FILTER: tuple[int, ...] = (
     645,
+    631,
     623,
     608,
     586,
