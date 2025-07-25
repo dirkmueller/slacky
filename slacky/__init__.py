@@ -58,7 +58,7 @@ OPENQA_GROUPS_FILTER: tuple[int, ...] = (
 
 HANGING_REQUESTS = timedelta(hours=12)
 HANGING_REPO_PUBLISH = timedelta(minutes=55)
-HANGING_CONTAINER_TAG = timedelta(days=21)
+HANGING_CONTAINER_TAG = timedelta(days=28)
 OPENQA_FAIL_WAIT = timedelta(minutes=50)
 
 
