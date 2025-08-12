@@ -57,7 +57,8 @@ OPENQA_GROUPS_FILTER: tuple[int, ...] = (
 )
 
 HANGING_REQUESTS = timedelta(hours=12)
-HANGING_REPO_PUBLISH = timedelta(minutes=55)
+HANGING_REPO_PUBLISH = timedelta(hours=1)
+HANGING_REPO_REPUBLISH = timedelta(days=5)
 HANGING_CONTAINER_TAG = timedelta(days=28)
 OPENQA_FAIL_WAIT = timedelta(minutes=50)
 
@@ -190,17 +191,19 @@ class Slacky:
             )
 
     def handle_obs_repo_event(self, routing_key, msg):
-        """Post any build failures for the configured projects to slack."""
-        if not self.repo_re.match(msg.get('project')) or not msg.get('state'):
+        """Warn when a container publish hangs or hasn't happened in a while."""
+        project: str = msg.get('project', '')
+        if not project or not msg.get('state'):
+            return
+        if not (
+            self.container_publish_re.match(project)
+            or self.project_re.match(project)
+            or self.bci_repo_re.match(project)
+        ):
             return
 
         prjrepo = f'{msg["project"]}/{msg["repo"]}'
         LOG.info(f'repo event for {prjrepo}: {msg}')
-        if msg['state'] == 'published':
-            if prjrepo in self.repo_publishes:
-                del self.repo_publishes[prjrepo]
-            return
-
         self.repo_publishes[prjrepo] = repo_publish(
             project=msg['project'],
             repository=msg['repo'],
@@ -247,7 +250,9 @@ class Slacky:
         if 'suse.obs.container.published' not in routing_key:
             return
 
-        if not msg.get('container') or not self.repo_re.match(msg.get('project', '')):
+        if not msg.get('container') or not self.container_publish_re.match(
+            msg.get('project', '')
+        ):
             return
 
         repository, _, tag = msg['container'].partition(':')
@@ -331,11 +336,12 @@ class Slacky:
         for repo in self.repo_publishes.values():
             if (
                 not repo.is_announced
+                and repo.state == 'publishing'
                 and (repo.state_changed + HANGING_REPO_PUBLISH) < datetime.now()
             ):
                 post_failure_notification_to_slack(
                     ':published:',
-                    f'{repo.project} / {repo.repository} is not published after {HANGING_REPO_PUBLISH}',
+                    f'{repo.project} / {repo.repository} is still in publishing state for {HANGING_REPO_PUBLISH}',
                     urllib.parse.urljoin(
                         CONF['obs']['host'],
                         f'/project/repository_state/{repo.project}/{repo.repository}',
@@ -344,7 +350,24 @@ class Slacky:
                 repo.is_announced = True
                 self.do_save_state = True
 
-        # Announce container tags that have not been published for a while
+        for repo in self.repo_publishes.values():
+            if (
+                not repo.is_announced
+                and repo.state == 'published'
+                and (repo.state_changed + HANGING_REPO_REPUBLISH) < datetime.now()
+            ):
+                post_failure_notification_to_slack(
+                    ':construction:',
+                    f'{repo.project} / {repo.repository} has not been published for {HANGING_REPO_REPUBLISH}',
+                    urllib.parse.urljoin(
+                        CONF['obs']['host'],
+                        f'/project/repository_state/{repo.project}/{repo.repository}',
+                    ),
+                )
+                repo.is_announced = True
+                self.do_save_state = True
+
+        # Notify about container tags that remain unpublished for a long time
         hanging_containers = sorted(
             [
                 c
@@ -441,7 +464,9 @@ class Slacky:
 
         self.load_state()
         self.project_re = re.compile(CONF['obs']['project_re'])
-        self.repo_re = re.compile(CONF['obs']['repo_re'])
+        self.container_build_re = re.compile(CONF['obs']['container_build_re'])
+        self.container_publish_re = re.compile(CONF['obs']['container_publish_re'])
+        self.bci_repo_re = re.compile(CONF['obs']['bci_repo_re'])
 
         def callback(_, method, _unused, body) -> None:
             """Generic dispatcher for events posted on the AMPQ channel."""

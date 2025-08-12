@@ -26,8 +26,15 @@ import slacky
 
 def _create_bot() -> slacky.Slacky:
     bot = slacky.Slacky()
-    bot.repo_re = re.compile(r'^SUSE:Containers:SLE-SERVER:')
+
+    # Patch load_state and save_state to do nothing
+    bot.load_state = lambda *args, **kwargs: None
+    bot.save_state = lambda *args, **kwargs: None
+    bot.repo_publishes = dict()
+
+    bot.container_publish_re = re.compile(r'^SUSE:Containers:SLE-SERVER:')
     bot.project_re = re.compile(r'^SUSE:SLE-15-SP.:Update:(BCI|CR)')
+    bot.bci_repo_re = re.compile(r'^SUSE:Products:SLE-BCI')
     slacky.CONF = {
         'DEFAULT': {},
         'obs': {'host': 'https://localhost/'},
@@ -190,8 +197,44 @@ def test_obs_repo_publish(mock_post_failure_notification):
     bot.check_pending_requests()
     mock_post_failure_notification.assert_called_with(
         ':published:',
-        'SUSE:Containers:SLE-SERVER:15 / containers is not published after 0:55:00',
+        'SUSE:Containers:SLE-SERVER:15 / containers is still in publishing state for 1:00:00',
         'https://localhost/project/repository_state/SUSE:Containers:SLE-SERVER:15/containers',
+    )
+
+
+@patch('slacky.post_failure_notification_to_slack', return_value=None)
+def test_bci_repo_publish(mock_post_failure_notification):
+    bot = _create_bot()
+    assert len(bot.repo_publishes.keys()) == 0
+
+    with patch('slacky.datetime') as mock_datetime:
+        mock_datetime.now.return_value = datetime.datetime(2023, 1, 2)
+        bot.handle_obs_repo_event(
+            'suse.obs.repo',
+            {
+                'state': 'publishing',
+                'project': 'SUSE:Products:SLE-BCI:16.0:x86_64',
+                'repo': 'images',
+            },
+        )
+    assert len(bot.repo_publishes.keys()) == 1
+    with patch('slacky.datetime') as mock_datetime:
+        mock_datetime.now.return_value = datetime.datetime(2023, 1, 3)
+        bot.handle_obs_repo_event(
+            'suse.obs.repo',
+            {
+                'state': 'published',
+                'project': 'SUSE:Products:SLE-BCI:16.0:x86_64',
+                'repo': 'images',
+            },
+        )
+    assert len(bot.repo_publishes.keys()) == 1
+
+    bot.check_pending_requests()
+    mock_post_failure_notification.assert_called_with(
+        ':construction:',
+        'SUSE:Products:SLE-BCI:16.0:x86_64 / images has not been published for 5 days, 0:00:00',
+        'https://localhost/project/repository_state/SUSE:Products:SLE-BCI:16.0:x86_64/images',
     )
 
 
