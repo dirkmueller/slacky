@@ -172,7 +172,7 @@ class Slacky:
     def handle_obs_package_event(self, routing_key, msg):
         """Post any build failures for the configured projects to slack."""
         if (
-            not self.project_re.match(msg.get('project', ''))
+            not self.container_build_re.match(msg.get('project', ''))
             or msg.get('previouslyfailed') == '1'
         ):
             return
@@ -197,8 +197,7 @@ class Slacky:
             return
         if not (
             self.container_publish_re.match(project)
-            or self.project_re.match(project)
-            or self.bci_repo_re.match(project)
+            or self.repo_publish_re.match(project)
         ):
             return
 
@@ -463,10 +462,9 @@ class Slacky:
         channel.queue_bind(exchange='pubsub', queue=queue_name, routing_key='#')
 
         self.load_state()
-        self.project_re = re.compile(CONF['obs']['project_re'])
         self.container_build_re = re.compile(CONF['obs']['container_build_re'])
         self.container_publish_re = re.compile(CONF['obs']['container_publish_re'])
-        self.bci_repo_re = re.compile(CONF['obs']['bci_repo_re'])
+        self.repo_publish_re = re.compile(CONF['obs']['repo_publish_re'])
 
         def callback(_, method, _unused, body) -> None:
             """Generic dispatcher for events posted on the AMPQ channel."""

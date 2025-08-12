@@ -33,8 +33,8 @@ def _create_bot() -> slacky.Slacky:
     bot.repo_publishes = dict()
 
     bot.container_publish_re = re.compile(r'^SUSE:Containers:SLE-SERVER:')
-    bot.project_re = re.compile(r'^SUSE:SLE-15-SP.:Update:(BCI|CR)')
-    bot.bci_repo_re = re.compile(r'^SUSE:Products:SLE-BCI')
+    bot.container_build_re = re.compile(r'^SUSE:SLE-15-SP.:Update:(BCI|CR)')
+    bot.repo_publish_re = re.compile(r'^SUSE:Products:SLE-BCI')
     slacky.CONF = {
         'DEFAULT': {},
         'obs': {'host': 'https://localhost/'},
