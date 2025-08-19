@@ -353,6 +353,7 @@ class Slacky:
             if (
                 not repo.is_announced
                 and repo.state == 'published'
+                and self.repo_publish_re.match(repo.project)
                 and (repo.state_changed + HANGING_REPO_REPUBLISH) < datetime.now()
             ):
                 post_failure_notification_to_slack(
