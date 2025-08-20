@@ -197,7 +197,7 @@ def test_obs_repo_publish(mock_post_failure_notification):
     bot.check_pending_requests()
     mock_post_failure_notification.assert_called_with(
         ':published:',
-        'SUSE:Containers:SLE-SERVER:15 / containers is still in publishing state for 1:00:00',
+        'SUSE:Containers:SLE-SERVER:15 / containers is still in publishing state for 3:00:00',
         'https://localhost/project/repository_state/SUSE:Containers:SLE-SERVER:15/containers',
     )
 
