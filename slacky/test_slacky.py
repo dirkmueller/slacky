@@ -35,6 +35,7 @@ def _create_bot() -> slacky.Slacky:
     bot.container_publish_re = re.compile(r'^SUSE:Containers:SLE-SERVER:')
     bot.container_build_re = re.compile(r'^SUSE:SLE-15-SP.:Update:(BCI|CR)')
     bot.repo_publish_re = re.compile(r'^SUSE:Products:SLE-BCI')
+    bot.git_repo_pr_re = re.compile(r'/products/BCI')
     slacky.CONF = {
         'DEFAULT': {},
         'obs': {'host': 'https://localhost/'},
@@ -282,6 +283,43 @@ def test_obs_container_publish(mock_post_failure_notification):
     mock_post_failure_notification.reset_mock()
     bot.check_pending_requests()
     mock_post_failure_notification.assert_not_called()
+
+
+@patch('slacky.post_failure_notification_to_slack', return_value=None)
+def test_src_pull_request_created(mock_post_failure_notification):
+    bot = _create_bot()
+
+    with patch('slacky.datetime') as mock_datetime:
+        mock_datetime.now.return_value = datetime.datetime(2023, 1, 2)
+        bot.handle_pullrequest_event(
+            'suse.src.products.pull_request.opened',
+            {
+                'pull_request': {
+                    'title': 'Automated pull request',
+                    'url': 'https://host.name/products/BCI/pulls/342',
+                }
+            },
+        )
+
+    assert list(bot.src_prs.keys()) == ['/products/BCI/pulls/342']
+    mock_post_failure_notification.assert_called_with(
+        ':announcement:',
+        'Opened PR /products/BCI/pulls/342 for review.',
+        'https://host.name/products/BCI/pulls/342',
+    )
+    mock_post_failure_notification.reset_mock()
+
+    bot.handle_pullrequest_event(
+        'suse.src.products.pull_request.closed',
+        {
+            'pull_request': {
+                'title': 'Automated pull request',
+                'url': 'https://host.name/products/BCI/pulls/342',
+            }
+        },
+    )
+    mock_post_failure_notification.assert_not_called()
+    assert list(bot.src_prs.keys()) == []
 
 
 @patch('slacky.post_failure_notification_to_slack', return_value=None)

@@ -107,6 +107,16 @@ class bs_Request:
 
 
 @dataclass
+class src_pull_requests:
+    """Track src pull requests identified by id"""
+
+    pr_url: str
+    created_at: datetime
+    is_announced: bool = False
+    is_create_announced: bool = False
+
+
+@dataclass
 class repo_publish:
     """Track repository publishing"""
 
@@ -125,6 +135,7 @@ class Slacky:
     bs_requests: collections.defaultdict[int, bs_Request] = collections.defaultdict(
         None
     )
+    src_prs: dict = {}
     repo_publishes: dict = {}
     container_publishes: dict = {}
     last_interval_check: datetime = datetime.now()
@@ -266,6 +277,28 @@ class Slacky:
         LOG.info(f'Container {repo_tag} published.')
         self.container_publishes[repo_tag] = datetime.now()
         self.do_save_state = True
+
+    def handle_pullrequest_event(self, routing_key: str, msg):
+        """Handle pull requests."""
+
+        pr_title = msg['pull_request'].get('title')
+        pr_url = msg['pull_request'].get('url')
+        pr_path = urllib.parse.urlparse(pr_url).path
+
+        if not pr_url or not self.git_repo_pr_re.match(pr_path):
+            return
+
+        if routing_key.endswith('pull_request.opened') or routing_key.endswith(
+            'pull_request.reopened'
+        ):
+            self.src_prs[pr_path] = src_pull_requests(
+                pr_url=pr_url, created_at=datetime.datetime.now()
+            )
+            post_failure_notification_to_slack(
+                ':announcement:', f'Opened PR {pr_path} for review.', pr_url
+            )
+        elif routing_key.endswith('pull_request.closed'):
+            del self.src_prs[pr_path]
 
     def check_pending_requests(self) -> None:
         """Announce for things that are hanging around"""
@@ -444,6 +477,9 @@ class Slacky:
                 LOG.info(
                     f'Loaded state(container_publishes = {self.container_publishes})'
                 )
+                if getattr(data, 'src_prs'):
+                    self.src_prs = data.src_prs
+                    LOG.info(f'Loaded state(src_prs = {self.src_prs})')
 
     def save_state(self) -> None:
         """pickle the slacky state for future instance preservation"""
@@ -466,6 +502,7 @@ class Slacky:
         self.container_build_re = re.compile(CONF['obs']['container_build_re'])
         self.container_publish_re = re.compile(CONF['obs']['container_publish_re'])
         self.repo_publish_re = re.compile(CONF['obs']['repo_publish_re'])
+        self.git_repo_pr_re = re.compile(CONF['src']['repository_re'])
 
         def callback(_, method, _unused, body) -> None:
             """Generic dispatcher for events posted on the AMPQ channel."""
@@ -491,6 +528,8 @@ class Slacky:
                 self.handle_obs_repo_event(routing_key, msg)
             elif routing_key.startswith('suse.obs.container'):
                 self.handle_container_event(routing_key, msg)
+            elif routing_key.startswith('suse.src') and '.pull_request.' in routing_key:
+                self.handle_pullrequest_event(routing_key, msg)
 
         channel.basic_consume(queue_name, callback, auto_ack=True)
         try:
