@@ -295,7 +295,7 @@ class Slacky:
                 pr_url=pr_url, created_at=datetime.now()
             )
             post_failure_notification_to_slack(
-                ':announcement:', f'Opened PR {pr_path} for review.', pr_url
+                ':gitea:', f'PR `{pr_path}` opened for review.', pr_url
             )
         elif routing_key.endswith('pull_request.closed'):
             if pr_path in self.src_prs:

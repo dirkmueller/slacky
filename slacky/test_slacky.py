@@ -303,8 +303,8 @@ def test_src_pull_request_created(mock_post_failure_notification):
 
     assert list(bot.src_prs.keys()) == ['/products/BCI/pulls/342']
     mock_post_failure_notification.assert_called_with(
-        ':announcement:',
-        'Opened PR /products/BCI/pulls/342 for review.',
+        ':gitea:',
+        'PR `/products/BCI/pulls/342` opened for review.',
         'https://host.name/products/BCI/pulls/342',
     )
     mock_post_failure_notification.reset_mock()
