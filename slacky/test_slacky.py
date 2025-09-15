@@ -323,6 +323,23 @@ def test_src_pull_request_created(mock_post_failure_notification):
 
 
 @patch('slacky.post_failure_notification_to_slack', return_value=None)
+def test_src_pull_request_unknown(mock_post_failure_notification):
+    bot = _create_bot()
+
+    bot.handle_pullrequest_event(
+        'suse.src.products.pull_request.closed',
+        {
+            'pull_request': {
+                'title': 'Automated pull request',
+                'url': 'https://host.name/products/BCI/pulls/342',
+            }
+        },
+    )
+    mock_post_failure_notification.assert_not_called()
+    assert list(bot.src_prs.keys()) == []
+
+
+@patch('slacky.post_failure_notification_to_slack', return_value=None)
 def test_openqa_failure(mock_post_failure_notification):
     bot = _create_bot()
 

@@ -292,13 +292,14 @@ class Slacky:
             'pull_request.reopened'
         ):
             self.src_prs[pr_path] = src_pull_requests(
-                pr_url=pr_url, created_at=datetime.datetime.now()
+                pr_url=pr_url, created_at=datetime.now()
             )
             post_failure_notification_to_slack(
                 ':announcement:', f'Opened PR {pr_path} for review.', pr_url
             )
         elif routing_key.endswith('pull_request.closed'):
-            del self.src_prs[pr_path]
+            if pr_path in self.src_prs:
+                del self.src_prs[pr_path]
 
     def check_pending_requests(self) -> None:
         """Announce for things that are hanging around"""
