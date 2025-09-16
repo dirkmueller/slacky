@@ -15,7 +15,7 @@ LABEL org.opencontainers.image.source=https://github.com/dirkmueller/slacky
 
 RUN useradd -U --uid 1000 --shell /bin/bash -d /app app && \
     chown -R app: /app
-USER app
-ENV PATH="/app/.local/bin:$PATH"
 RUN pipx install .
+ENV PATH="/app/.local/bin:$PATH"
+USER app
 CMD ["slacky"]
