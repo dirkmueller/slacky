@@ -30,7 +30,7 @@ def _create_bot() -> slacky.Slacky:
     # Patch load_state and save_state to do nothing
     bot.load_state = lambda *args, **kwargs: None
     bot.save_state = lambda *args, **kwargs: None
-    bot.repo_publishes = dict()
+    bot.repo_publishes = {}
 
     bot.container_publish_re = re.compile(r'^SUSE:Containers:SLE-SERVER:')
     bot.container_build_re = re.compile(r'^SUSE:SLE-15-SP.:Update:(BCI|CR)')

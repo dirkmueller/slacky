@@ -281,7 +281,6 @@ class Slacky:
     def handle_pullrequest_event(self, routing_key: str, msg):
         """Handle pull requests."""
 
-        pr_title = msg['pull_request'].get('title')
         pr_url = msg['pull_request'].get('url')
         pr_path = urllib.parse.urlparse(pr_url).path
 
