@@ -415,7 +415,7 @@ class Slacky:
         if hanging_containers:
             post_failure_notification_to_slack(
                 ':question:',
-                f'These tags were not published after {HANGING_CONTAINER_TAG}: {",".join(hanging_containers)}',
+                f'These tags were not published for {HANGING_CONTAINER_TAG}: {",".join(hanging_containers)}. Please investigate if this is a legitimate issue or simply a now unmaintained container.',
                 'https://registry.suse.com/',
             )
             for container in hanging_containers:
