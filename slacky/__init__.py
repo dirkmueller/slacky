@@ -61,6 +61,7 @@ HANGING_REPO_PUBLISH = timedelta(hours=3)
 HANGING_REPO_REPUBLISH = timedelta(days=5)
 HANGING_CONTAINER_TAG = timedelta(days=28)
 OPENQA_FAIL_WAIT = timedelta(minutes=50)
+OPENQA_PENDING_WAIT = timedelta(hours=12)
 
 
 def post_failure_notification_to_slack(status, body, link_to_failure) -> None:
@@ -440,6 +441,16 @@ class Slacky:
             if (
                 len(result_times)
                 and result_times[0]
+                and (result_times[0] + OPENQA_PENDING_WAIT) < datetime.now()
+            ):
+                LOG.info(
+                    f'Job {build_id} is hanging for a long time - results: {results}'
+                )
+                builds_to_delete.append((group_id, build_id))
+                # TODO: announce hanging job
+            elif (
+                len(result_times)
+                and result_times[0]
                 and (result_times[0] + OPENQA_FAIL_WAIT) < datetime.now()
             ):
                 LOG.info(f'Job {build_id} ended - results: {results}')
@@ -458,6 +469,7 @@ class Slacky:
                     self.do_save_state = True
                 if not results.get('pending'):
                     builds_to_delete.append((group_id, build_id))
+
         for group_id, build_id in builds_to_delete:
             del self.openqa_jobs[(group_id, build_id)]
 

@@ -403,10 +403,18 @@ def test_openqa_failure(mock_post_failure_notification):
             ]
         },
     )
-    bot.check_pending_requests()
-    mock_post_failure_notification.assert_called_with(
-        ':openqa:',
-        'Build repo_23.2 has 1 failed tests.',
-        'https://localhost/tests/overview?build=repo_23.2&groupid=444',
-    )
+
+    with patch('slacky.datetime') as mock_datetime:
+        mock_datetime.now.return_value = (
+            datetime.datetime(2023, 1, 2)
+            + slacky.OPENQA_FAIL_WAIT
+            + datetime.timedelta(minutes=10)
+        )
+
+        bot.check_pending_requests()
+        mock_post_failure_notification.assert_called_with(
+            ':openqa:',
+            'Build repo_23.2 has 1 failed tests.',
+            'https://localhost/tests/overview?build=repo_23.2&groupid=444',
+        )
     assert len(bot.openqa_jobs) == 0
