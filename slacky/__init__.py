@@ -136,7 +136,7 @@ class Slacky:
     bs_requests: collections.defaultdict[int, bs_Request] = collections.defaultdict(
         None
     )
-    src_prs: dict = {}
+    src_prs: dict[str, src_pull_requests] = {}
     repo_publishes: dict = {}
     container_publishes: dict = {}
     last_interval_check: datetime = datetime.now()
@@ -301,6 +301,7 @@ class Slacky:
             post_failure_notification_to_slack(
                 ':gitea:', f'PR `{pr_path}` opened for review.', pr_url
             )
+            self.src_prs[pr_path].is_create_announced = True
         elif routing_key.endswith('pull_request.closed'):
             if pr_path in self.src_prs:
                 del self.src_prs[pr_path]
