@@ -174,9 +174,13 @@ class Slacky:
                 LOG.info(f'Ignored restart on {qajob}/{test_id}')
         elif 'suse.openqa.job.done' in routing_key:
             for job in filter(find_test_id, self.openqa_jobs[qajob]):
-                if msg.get('reason') is not None:
-                    LOG.info(f'Job {qajob}/{test_id} is going to restart')
-                    continue
+                if msg.get('failedmodules', None):
+                    if 'bci_version_check' in msg['failedmodules']:
+                        LOG.info(f'Job {qajob}/{test_id} failed on bci_version_check')
+                        job.result = 'ignore'
+                        job.finished_at = datetime.now()
+                        continue
+
                 job.result = msg['result']
                 job.finished_at = datetime.now()
 
