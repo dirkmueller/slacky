@@ -96,7 +96,7 @@ class openQAJob:
 
 
 @dataclass
-class bs_Request:
+class ObsRequest:
     """Track build service requests identified by id"""
 
     id: int
@@ -133,7 +133,7 @@ class Slacky:
     openqa_jobs: collections.defaultdict[tuple[int, str], list[openQAJob]] = (
         collections.defaultdict(list)
     )
-    bs_requests: collections.defaultdict[int, bs_Request] = collections.defaultdict(
+    obs_requests: collections.defaultdict[int, ObsRequest] = collections.defaultdict(
         None
     )
     src_prs: dict[str, src_pull_requests] = {}
@@ -234,16 +234,16 @@ class Slacky:
                     LOG.info(
                         f'found new submitrequest against {action["targetproject"]}: id {msg["number"]}'
                     )
-                    bs_request = bs_Request(
+                    bs_request = ObsRequest(
                         id=msg['number'],
                         targetproject=action['targetproject'],
                         targetpackage=action['targetpackage'],
                         created_at=datetime.now(),
                     )
-                    self.bs_requests[msg['number']] = bs_request
+                    self.obs_requests[msg['number']] = bs_request
 
         if 'suse.obs.request.state_change' in routing_key:
-            bs_request = self.bs_requests.get(msg['number'])
+            bs_request = self.obs_requests.get(msg['number'])
             if bs_request:
                 bs_request.state = msg['state']
                 if msg['state'] in ('declined',):
@@ -258,7 +258,7 @@ class Slacky:
                     bs_request.is_create_announced = True
                 if msg['state'] in ('accepted', 'revoked', 'superseded'):
                     LOG.info(f'request {msg["number"]} entered final state.')
-                    del self.bs_requests[msg['number']]
+                    del self.obs_requests[msg['number']]
 
     def handle_container_event(self, routing_key: str, msg):
         """Warn when a floating tag didn't get published for a long time."""
@@ -313,7 +313,7 @@ class Slacky:
         for prj, reqcount in collections.Counter(
             (
                 req.targetproject
-                for req in self.bs_requests.values()
+                for req in self.obs_requests.values()
                 if (
                     not req.is_announced
                     and (req.created_at + HANGING_REQUESTS) < datetime.now()
@@ -321,7 +321,7 @@ class Slacky:
             )
         ).most_common():
             pkgs = set()
-            for req in self.bs_requests.values():
+            for req in self.obs_requests.values():
                 if req.targetproject == prj and not req.is_announced:
                     pkgs.add(req.targetpackage)
                     req.is_announced = True
@@ -339,12 +339,12 @@ class Slacky:
         for prj, reqcount in collections.Counter(
             (
                 req.targetproject
-                for req in self.bs_requests.values()
+                for req in self.obs_requests.values()
                 if not req.is_create_announced
             )
         ).most_common():
             newest_request_age: float = HANGING_REQUESTS.total_seconds()
-            for req in self.bs_requests.values():
+            for req in self.obs_requests.values():
                 if req.targetproject == prj and not req.is_create_announced:
                     if (
                         datetime.now() - req.created_at
@@ -355,7 +355,7 @@ class Slacky:
             # If we haven't seen a new request in a while, time to announce
             if 60 < newest_request_age < HANGING_REQUESTS.total_seconds():
                 pkgs = set()
-                for req in self.bs_requests.values():
+                for req in self.obs_requests.values():
                     if req.targetproject == prj and not req.is_create_announced:
                         pkgs.add(req.targetpackage)
                         req.is_create_announced = True
@@ -486,17 +486,16 @@ class Slacky:
                 # copy over the state from a previous launched slacky
                 self.openqa_jobs = data.openqa_jobs
                 LOG.info(f'Loaded state(openqa_jobs = {self.openqa_jobs})')
-                self.bs_requests = data.bs_requests
-                LOG.info(f'Loaded state(bs_requests = {self.bs_requests})')
+                self.obs_requests = data.obs_requests
+                LOG.info(f'Loaded state(obs_requests = {self.obs_requests})')
                 self.repo_publishes = data.repo_publishes
                 LOG.info(f'Loaded state(repo_publish = {self.repo_publishes})')
                 self.container_publishes = data.container_publishes
                 LOG.info(
                     f'Loaded state(container_publishes = {self.container_publishes})'
                 )
-                if getattr(data, 'src_prs'):
-                    self.src_prs = data.src_prs
-                    LOG.info(f'Loaded state(src_prs = {self.src_prs})')
+                self.src_prs = data.src_prs
+                LOG.info(f'Loaded state(src_prs = {self.src_prs})')
 
     def save_state(self) -> None:
         """pickle the slacky state for future instance preservation"""

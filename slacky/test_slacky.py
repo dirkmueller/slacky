@@ -48,14 +48,14 @@ def _create_bot() -> slacky.Slacky:
 def test_pending_bs_requests_grouping(mock_post_failure_notification):
     bot = _create_bot()
 
-    bot.bs_requests = {
-        1: slacky.bs_Request(
+    bot.obs_requests = {
+        1: slacky.ObsRequest(
             id=1,
             targetproject='project1',
             targetpackage='package1',
             created_at=datetime.datetime(2023, 1, 2),
         ),
-        2: slacky.bs_Request(
+        2: slacky.ObsRequest(
             id=2,
             targetproject='project1',
             targetpackage='package2',
@@ -70,7 +70,7 @@ def test_pending_bs_requests_grouping(mock_post_failure_notification):
         '2 hanging requests to project1 / package1, package2 ',
         'https://localhost/project/requests/project1',
     )
-    for _, req in bot.bs_requests.items():
+    for _, req in bot.obs_requests.items():
         assert req.is_announced
 
 
@@ -78,8 +78,8 @@ def test_pending_bs_requests_grouping(mock_post_failure_notification):
 def test_pending_bs_requests_single(mock_post_failure_notification):
     bot = _create_bot()
 
-    bot.bs_requests = {
-        1: slacky.bs_Request(
+    bot.obs_requests = {
+        1: slacky.ObsRequest(
             id=1,
             targetproject='project1',
             targetpackage='package1',
@@ -118,14 +118,14 @@ def test_pending_bs_requests_single(mock_post_failure_notification):
 def test_pending_bs_requests_multiple(mock_post_failure_notification):
     bot = _create_bot()
 
-    bot.bs_requests = {
-        1: slacky.bs_Request(
+    bot.obs_requests = {
+        1: slacky.ObsRequest(
             id=1,
             targetproject='project1',
             targetpackage='package1',
             created_at=datetime.datetime(2023, 1, 2),
         ),
-        2: slacky.bs_Request(
+        2: slacky.ObsRequest(
             id=2,
             targetproject='project1',
             targetpackage='package2',
