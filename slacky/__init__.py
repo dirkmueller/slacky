@@ -108,7 +108,7 @@ class ObsRequest:
 
 
 @dataclass
-class src_pull_requests:
+class SrcPullRequest:
     """Track src pull requests identified by id"""
 
     pr_url: str
@@ -118,7 +118,7 @@ class src_pull_requests:
 
 
 @dataclass
-class repo_publish:
+class RepoPublish:
     """Track repository publishing"""
 
     project: str
@@ -133,10 +133,8 @@ class Slacky:
     openqa_jobs: collections.defaultdict[tuple[int, str], list[openQAJob]] = (
         collections.defaultdict(list)
     )
-    obs_requests: collections.defaultdict[int, ObsRequest] = collections.defaultdict(
-        None
-    )
-    src_prs: dict[str, src_pull_requests] = {}
+    obs_requests: dict[int, ObsRequest] = {}
+    src_prs: dict[str, SrcPullRequest] = {}
     repo_publishes: dict = {}
     container_publishes: dict = {}
     last_interval_check: datetime = datetime.now()
@@ -219,7 +217,7 @@ class Slacky:
 
         prjrepo = f'{msg["project"]}/{msg["repo"]}'
         LOG.info(f'repo event for {prjrepo}: {msg}')
-        self.repo_publishes[prjrepo] = repo_publish(
+        self.repo_publishes[prjrepo] = RepoPublish(
             project=msg['project'],
             repository=msg['repo'],
             state=msg['state'],
@@ -295,7 +293,7 @@ class Slacky:
         if routing_key.endswith('pull_request.opened') or routing_key.endswith(
             'pull_request.reopened'
         ):
-            self.src_prs[pr_path] = src_pull_requests(
+            self.src_prs[pr_path] = SrcPullRequest(
                 pr_url=pr_url, created_at=datetime.now()
             )
             post_failure_notification_to_slack(
