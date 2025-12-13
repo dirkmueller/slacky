@@ -22,8 +22,8 @@ target is not in scope.
     host = https://build.opensuse.org
     container_build_re = $projectstomonitorforbuild
     container_publish_re = $containerprojectstomonitorforpublish
-    repo_publish_re = $repoprojectstomonitorforpublish```
-
+    repo_publish_re = $repoprojectstomonitorforpublish
+    ```
 3.  Run the bot
     ```bash
     python3 slacky.py

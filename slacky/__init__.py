@@ -305,7 +305,7 @@ class Slacky:
                 del self.src_prs[pr_path]
 
     def check_pending_requests(self) -> None:
-        """Announce for things that are hanging around"""
+        """Announce things that are hanging around"""
 
         # Announce request that are open for a long time
         for prj, reqcount in collections.Counter(
@@ -477,11 +477,11 @@ class Slacky:
             self.do_save_state = False
 
     def load_state(self) -> None:
-        """Restore persisted from a previously launched slacky"""
+        """Restore persisted state from a previously launched slacky"""
         if self.state_file.is_file():
             with open(self.state_file, 'rb') as f:
                 data = pickle.load(f)
-                # copy over the state from a previous launched slacky
+                # copy over the state from a previously launched slacky
                 self.openqa_jobs = data.openqa_jobs
                 LOG.info(f'Loaded state(openqa_jobs = {self.openqa_jobs})')
                 self.obs_requests = data.obs_requests
@@ -502,7 +502,7 @@ class Slacky:
             LOG.info(f'Saved state to {self.state_file}')
 
     def run(self) -> None:
-        """pubsub subscribe to events posted on the AMPQ channel."""
+        """Subscribe to events posted on the AMQP channel."""
         channel: BlockingChannel = pika.BlockingConnection(
             pika.URLParameters(CONF['DEFAULT']['listen_url'])
         ).channel()
@@ -519,7 +519,7 @@ class Slacky:
         self.git_repo_pr_re = re.compile(CONF['src']['repository_re'])
 
         def callback(_, method, _unused, body) -> None:
-            """Generic dispatcher for events posted on the AMPQ channel."""
+            """Generic dispatcher for events posted on the AMQP channel."""
 
             if (datetime.now() - self.last_interval_check).total_seconds() > 120:
                 self.check_pending_requests()
