@@ -446,7 +446,14 @@ class Slacky:
                     f'Job {build_id} is hanging for a long time - results: {results}'
                 )
                 builds_to_delete.append((group_id, build_id))
-                # TODO: announce hanging job
+                post_failure_notification_to_slack(
+                    ':hourglass_flowing_sand:',
+                    f'Build {build_id} has pending jobs for more than {OPENQA_PENDING_WAIT}. Looks like the test run is stuck.',
+                    urllib.parse.urljoin(
+                        CONF['openqa']['host'],
+                        f'/tests/overview?build={build_id}&groupid={group_id}',
+                    ),
+                )
             elif (
                 len(result_times)
                 and result_times[0]
