@@ -272,12 +272,13 @@ class Slacky:
         tag_version = tag.rpartition('-')[0] if '-' in tag else tag
         if tag_version.count('.') >= 2:
             return
-        # Skip AppCollection
-        if repository.startswith('dp.apps.rancher.io'):
+        uri = urllib.parse.urlparse('docker://' + repository)
+        # Skip registries that we do not care about
+        if uri.netloc in ('dp.apps.rancher.io', 'registry.suse.de'):
             return
 
         repo_tag: str = f'{repository.partition("/")[2]}:{tag_version}'
-        LOG.info(f'Container {repo_tag} published.')
+        LOG.info(f'Container {repo_tag} published from {msg["project"]} msg {msg}.')
         self.container_publishes[repo_tag] = datetime.now()
         self.do_save_state = True
 
@@ -495,7 +496,11 @@ class Slacky:
                 LOG.info(f'Loaded state(obs_requests = {self.obs_requests})')
                 self.repo_publishes = data.repo_publishes
                 LOG.info(f'Loaded state(repo_publish = {self.repo_publishes})')
-                self.container_publishes = data.container_publishes
+                self.container_publishes = {
+                    c: t
+                    for c, t in data.container_publishes.items()
+                    if not c.startswith('suse/containers/')
+                }
                 LOG.info(
                     f'Loaded state(container_publishes = {self.container_publishes})'
                 )
