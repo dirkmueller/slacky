@@ -85,6 +85,18 @@ def post_failure_notification_to_slack(status, body, link_to_failure) -> None:
         LOG.error(f'Failed to post failure notification to slack: {err}')
 
 
+def post_failing_openqa_run(build_id, group_id, results) -> None:
+    body: str = f'Build {build_id} has {results["failed"]} failed tests.'
+    post_failure_notification_to_slack(
+        ':openqa:',
+        body,
+        urllib.parse.urljoin(
+            CONF['openqa']['host'],
+            f'/tests/overview?build={build_id}&groupid={group_id}',
+        ),
+    )
+
+
 @dataclass
 class openQAJob:
     """Track the state of a openQA job identified by id"""
@@ -447,14 +459,18 @@ class Slacky:
                     f'Job {build_id} is hanging for a long time - results: {results}'
                 )
                 builds_to_delete.append((group_id, build_id))
-                post_failure_notification_to_slack(
-                    ':hourglass_flowing_sand:',
-                    f'Build {build_id} has pending jobs for more than {OPENQA_PENDING_WAIT}. Looks like the test run is stuck.',
-                    urllib.parse.urljoin(
-                        CONF['openqa']['host'],
-                        f'/tests/overview?build={build_id}&groupid={group_id}',
-                    ),
-                )
+                self.do_save_state = True
+                if results.get('failed'):
+                    post_failing_openqa_run(build_id, group_id, results)
+                else:
+                    post_failure_notification_to_slack(
+                        ':hourglass_flowing_sand:',
+                        f'Build {build_id} has pending jobs for more than {OPENQA_PENDING_WAIT}. Looks like the test run is stuck.',
+                        urllib.parse.urljoin(
+                            CONF['openqa']['host'],
+                            f'/tests/overview?build={build_id}&groupid={group_id}',
+                        ),
+                    )
             elif (
                 len(result_times)
                 and result_times[0]
@@ -462,17 +478,7 @@ class Slacky:
             ):
                 LOG.info(f'Job {build_id} ended - results: {results}')
                 if not results.get('pending') and results.get('failed'):
-                    body: str = (
-                        f'Build {build_id} has {results["failed"]} failed tests.'
-                    )
-                    post_failure_notification_to_slack(
-                        ':openqa:',
-                        body,
-                        urllib.parse.urljoin(
-                            CONF['openqa']['host'],
-                            f'/tests/overview?build={build_id}&groupid={group_id}',
-                        ),
-                    )
+                    post_failing_openqa_run(build_id, group_id, results)
                     self.do_save_state = True
                 if not results.get('pending'):
                     builds_to_delete.append((group_id, build_id))
