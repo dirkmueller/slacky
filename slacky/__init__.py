@@ -61,7 +61,8 @@ HANGING_REPO_PUBLISH = timedelta(hours=3)
 HANGING_REPO_REPUBLISH = timedelta(days=5)
 HANGING_CONTAINER_TAG = timedelta(days=28)
 OPENQA_FAIL_WAIT = timedelta(minutes=50)
-OPENQA_PENDING_WAIT = timedelta(hours=12)
+# openqa is increasing scheduling priority after 12 hours
+OPENQA_PENDING_WAIT = timedelta(hours=12+2)
 
 
 def post_failure_notification_to_slack(status, body, link_to_failure) -> None:
