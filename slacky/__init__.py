@@ -40,6 +40,7 @@ CONF = configparser.ConfigParser(
     defaults={'listen_url': 'amqps://suse:suse@rabbit.suse.de:5671/'}, strict=False
 )
 OPENQA_GROUPS_FILTER: tuple[int, ...] = (
+    716,
     645,
     631,
     623,
